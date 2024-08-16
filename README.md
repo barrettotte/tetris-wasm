@@ -1,2 +1,12 @@
 # tetris-c
-Yet another Tetris clone in C
+
+Tetris clone in C and compiled to WASM.
+
+## Usage
+
+TODO:
+
+## References
+
+- https://tetris.wiki/Tetris.wiki
+- https://emscripten.org/

@@ -2,4 +2,5 @@ bin
 build
 *.o
 
-valgrind*
+CMakeUserPresets.json
+tmp

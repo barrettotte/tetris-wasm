@@ -4,6 +4,9 @@ set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/build/conan_toolchain.cmake" CACHE
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build: Debug, Release, RelWithDebInfo, MinSizeRel" FORCE)
 set(CMAKE_C_COMPILER "clang-18")
 
+# for intellisense
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 project(tetris C)
 
 # dependencies

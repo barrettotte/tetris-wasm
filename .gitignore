@@ -4,3 +4,4 @@ build
 
 CMakeUserPresets.json
 tmp
+.vscode

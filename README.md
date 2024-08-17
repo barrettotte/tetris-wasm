@@ -2,11 +2,9 @@
 
 Tetris clone in C and compiled to WASM.
 
-This was made to learn the basics of WASM, CMake, and Conan.
+This was made to learn the basics of Raylib, WASM, CMake, and Conan.
 
-## Usage
-
-TODO:
+## Development
 
 ```sh
 # init build system
@@ -18,6 +16,26 @@ make -C build tetris
 
 # run
 ./bin/tetris
+```
+
+### VS Code
+
+For intellisense, add `compileCommands` property:
+
+```json
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            // ...
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
+        }
+    ],
+    "version": 4
+}
 ```
 
 ## References

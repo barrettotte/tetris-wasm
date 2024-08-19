@@ -4,12 +4,18 @@ Tetris clone in C and compiled to WASM.
 
 This was made to learn the basics of Raylib, WASM, CMake, and Conan.
 
+## Unimplemented Features
+
+- Tetromino hold
+- Tetromino preview
+- Levels
+
 ## Development
 
 ```sh
 # init build system
 conan install . --output-folder=build/ --build=missing
-cmake -S . -B build tetris
+cmake -S . -B build
 
 # build
 make -C build tetris
@@ -22,7 +28,7 @@ make -C build tetris
 
 For intellisense, add `compileCommands` property:
 
-```json
+```js
 {
     "configurations": [
         {
@@ -42,3 +48,4 @@ For intellisense, add `compileCommands` property:
 
 - https://tetris.wiki/Tetris.wiki
 - https://emscripten.org/
+- https://en.wikipedia.org/wiki/Tetromino

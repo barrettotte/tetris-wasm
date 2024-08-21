@@ -4,24 +4,89 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
+#include <time.h>
 
 static Game* game = NULL;
 static CellState grid[GRID_ROWS][GRID_COLS];
 
+// generate tetromino properties given tetromino type
+static void generateTetromino(MovableTetromino* tetromino) {
+    tetromino->x = SPAWN_X;
+    tetromino->y = SPAWN_Y;
+    tetromino->rotIdx = 0;
+
+    TetrominoType type = (TetrominoType) (rand() % TETROMINO_TYPE_SIZE);
+    tetromino->t->type = type;
+
+    switch (type) {
+        case TETROMINO_I:
+            tetromino->t->color = TETRIS_CYAN;
+            memcpy(tetromino->t->patterns, PATTERN_I, sizeof(int) * 4);
+            break;
+        case TETROMINO_O:
+            tetromino->t->color = TETRIS_YELLOW;
+            memcpy(tetromino->t->patterns, PATTERN_O, sizeof(int) * 4);
+            break;
+        case TETROMINO_T:
+            tetromino->t->color = TETRIS_PURPLE;
+            memcpy(tetromino->t->patterns, PATTERN_T, sizeof(int) * 4);
+            break;
+        case TETROMINO_J:
+            tetromino->t->color = TETRIS_BLUE;
+            memcpy(tetromino->t->patterns, PATTERN_J, sizeof(int) * 4);
+            break;
+        case TETROMINO_L:
+            tetromino->t->color = TETRIS_ORANGE;
+            memcpy(tetromino->t->patterns, PATTERN_L, sizeof(int) * 4);
+            break;
+        case TETROMINO_S:
+            tetromino->t->color = TETRIS_GREEN;
+            memcpy(tetromino->t->patterns, PATTERN_S, sizeof(int) * 4);
+            break;
+        case TETROMINO_Z:
+            tetromino->t->color = TETRIS_RED;
+            memcpy(tetromino->t->patterns, PATTERN_Z, sizeof(int) * 4);
+            break;
+        default:
+            printf("Invalid tetromino type %d\n", type);
+            exit(1);
+            break;
+    }
+}
+
+// get color for the given cell state
+static Color cellStateToColor(CellState state) {
+    switch (state) {
+        case CELL_STATE_CYAN:   return TETRIS_CYAN;
+        case CELL_STATE_YELLOW: return TETRIS_YELLOW;
+        case CELL_STATE_PURPLE: return TETRIS_PURPLE;
+        case CELL_STATE_GREEN:  return TETRIS_GREEN;
+        case CELL_STATE_RED:    return TETRIS_RED;
+        case CELL_STATE_BLUE:   return TETRIS_BLUE;
+        case CELL_STATE_ORANGE: return TETRIS_ORANGE;
+        case CELL_STATE_EMPTY:  return GRID_CELL_COLOR;
+        default:                return MAGENTA; // invalid
+    }
+}
+
 // set initial game state
 static void init() {
+    srand(time(NULL));
+
     MovableTetromino* current = malloc(sizeof(MovableTetromino));
-    current->rotIdx = 0;
-    current->x = 3;
-    current->y = 2;
     current->t = malloc(sizeof(Tetromino));
-    memcpy(current->t, &TETROMINO_I, sizeof(Tetromino));
-    
+    generateTetromino(current);
+
     // init game data
     game = malloc(sizeof(Game));
     game->state = GAME_STATE_PLAY;
     game->score = 0;
     game->tetromino = current;
+
+    // init timer for falling tetrominos
+    game->fallTimer = malloc(sizeof(Timer));
+    game->fallTimer->duration = FALL_SPEED;
+    game->fallTimer->prevTime = GetTime();
 
     // init grid cells
     memset(grid, 0, sizeof(grid));
@@ -41,11 +106,27 @@ static void cleanup() {
     CloseWindow();
     free(game->tetromino->t);
     free(game->tetromino);
+    free(game->fallTimer);
     free(game);
+}
+
+// check if timer has elapsed for timer duration
+static bool timerHasFired(Timer* timer) {
+    double now = GetTime();
+
+    if (now - timer->prevTime >= timer->duration) {
+        timer->prevTime = now;
+        return true;
+    }
+    return false;
 }
 
 // check for events to process
 static Event checkForEvent() {
+    if (timerHasFired(game->fallTimer)) {
+        return EVENT_FALL;
+    }
+
     if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
         return EVENT_ROTATE;
     } else if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
@@ -61,8 +142,8 @@ static Event checkForEvent() {
 // check if tetromino pattern is within grid bounds
 static bool isPatternInBounds(Vector2 pattern[4]) {
     for (int i = 0; i < 4; i++) {
-        uint8_t x = pattern[i].x;
-        uint8_t y = pattern[i].y;
+        int x = pattern[i].x;
+        int y = pattern[i].y;
 
         if (grid[y][x] != CELL_STATE_EMPTY || (x < 0) || (x >= GRID_COLS) || (y < 0) || (y >= GRID_ROWS)) {
             return false;
@@ -92,8 +173,27 @@ static void getTetrominoPattern(MovableTetromino* tetromino, Vector2* pattern) {
     }
 }
 
+// lock final position of current moving tetromino
+static void lockTetramino(MovableTetromino* tetromino) {
+    Vector2 pattern[4];
+    getTetrominoPattern(tetromino, pattern);
+
+    if (!isPatternInBounds(pattern)) {
+        return;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        int x = pattern[i].x;
+        int y = pattern[i].y;
+        grid[y][x] = (int) tetromino->t->type;
+    }
+
+    // set next tetromino
+    generateTetromino(tetromino);
+}
+
 // update grid with updated moving tetromino
-static void updateGrid(Vector2* currentPattern, MovableTetromino* updatedTetromino) {
+static void updateGrid(Vector2* currentPattern, MovableTetromino* updatedTetromino, Event event) {
     // clear moving tetramino
     for (int i = 0; i < 4; i++) {
         int x = currentPattern[i].x;
@@ -101,28 +201,44 @@ static void updateGrid(Vector2* currentPattern, MovableTetromino* updatedTetromi
         grid[y][x] = CELL_STATE_EMPTY;
     }
 
-    // update grid with moved tetramino if in bounds
     Vector2 updatedPattern[4];
     getTetrominoPattern(updatedTetromino, updatedPattern);
+    bool inBounds = isPatternInBounds(updatedPattern);
 
-    if (isPatternInBounds(updatedPattern)) {
+    if (inBounds) {
         game->tetromino->x = updatedTetromino->x;
         game->tetromino->y = updatedTetromino->y;
         game->tetromino->rotIdx = updatedTetromino->rotIdx;
     }
+
+    // lock moving tetromino if hit bounds
+    if (!inBounds && event == EVENT_FALL) {
+        lockTetramino(game->tetromino);
+    }
+
+    // TODO: check clear blocks?
 }
 
 // handle event
-static void handleEvent(Event event, MovableTetromino* tetromino) {
-    if (event == EVENT_ROTATE) {
-        tetromino->rotIdx = (tetromino->rotIdx + 1) % 4;
+static void handleEvent(Event event) {
+    Vector2 currentPattern[4] = {0};
+    getTetrominoPattern(game->tetromino, currentPattern);
+
+    MovableTetromino updated = *game->tetromino;
+
+    if (event == EVENT_NONE) {
+        return;
+    } else if (event == EVENT_ROTATE) {
+        updated.rotIdx = (updated.rotIdx + 1) % 4;
     } else if (event == EVENT_LEFT) {
-        tetromino->x--;
+        updated.x--;
     } else if (event == EVENT_RIGHT) {
-        tetromino->x++;
-    } else if (event == EVENT_DOWN) {
-        tetromino->y++;
+        updated.x++;
+    } else if (event == EVENT_DOWN || event == EVENT_FALL) {
+        updated.y++;
     }
+
+    updateGrid(currentPattern, &updated, event);
 }
 
 // process game logic for single frame
@@ -130,39 +246,18 @@ static void update() {
     Event event = checkForEvent();
 
     if (event != EVENT_NONE) {
-        Vector2 currentPattern[4];
-        getTetrominoPattern(game->tetromino, currentPattern);
-
-        MovableTetromino updatedTetromino = *game->tetromino;
-
-        handleEvent(event, &updatedTetromino);
-        updateGrid(currentPattern, &updatedTetromino);
+        handleEvent(event);
     }
 }
 
 // draw current score
-static void drawScore(uint64_t score) {
+static void drawScore(int score) {
     char buffer[32];
-    sprintf(buffer, "Score: %lu", score);
+    sprintf(buffer, "Score: %d", score);
 
     int x = (WINDOW_WIDTH - MeasureText(buffer, SCORE_FONT_SIZE)) / 2;
     int y = GRID_PAD_Y;
     DrawText(buffer, x, y, SCORE_FONT_SIZE, SCORE_COLOR);
-}
-
-// get color for the given cell state
-static Color cellStateToColor(CellState state) {
-    switch (state) {
-        case CELL_STATE_CYAN:   return TETRIS_CYAN;
-        case CELL_STATE_YELLOW: return TETRIS_YELLOW;
-        case CELL_STATE_PURPLE: return TETRIS_PURPLE;
-        case CELL_STATE_GREEN:  return TETRIS_GREEN;
-        case CELL_STATE_RED:    return TETRIS_RED;
-        case CELL_STATE_BLUE:   return TETRIS_BLUE;
-        case CELL_STATE_ORANGE: return TETRIS_ORANGE;
-        case CELL_STATE_EMPTY:  return GRID_CELL_COLOR;
-        default:                return MAGENTA; // invalid
-    }
 }
 
 // draw a grid cell at given col,row

@@ -33,20 +33,19 @@ static const Color SCORE_COLOR = WHITE;
 static const Color GRID_LINE_COLOR = GRAY;
 static const Color GRID_CELL_COLOR = BLACK;
 
-static const float DROP_SPEED = 0.2f;
+static const int SPAWN_X = 3;
+static const int SPAWN_Y = 3;
+static const float FALL_SPEED = 0.35f;
+
+static const int PATTERN_I[4] = {0b0000111100000000, 0b0010001000100010, 0b0000000011110000, 0b0100010001000100};
+static const int PATTERN_O[4] = {0b0000011001100000, 0b0000011001100000, 0b0000011001100000, 0b0000011001100000};
+static const int PATTERN_T[4] = {0b0000111001000000, 0b0100110001000000, 0b0100111000000000, 0b0100011001000000};
+static const int PATTERN_J[4] = {0b0100010011000000, 0b1000111000000000, 0b0110010001000000, 0b0000111000100000};
+static const int PATTERN_L[4] = {0b0100010001100000, 0b0000111010000000, 0b1100010001000000, 0b0010111000000000};
+static const int PATTERN_S[4] = {0b0000011011000000, 0b1000110001000000, 0b0000011011000000, 0b1000110001000000};
+static const int PATTERN_Z[4] = {0b0000110001100000, 0b0100110010000000, 0b0000110001100000, 0b0100110010000000};
 
 // types
-
-typedef enum CellState {
-    CELL_STATE_CYAN,
-    CELL_STATE_YELLOW,
-    CELL_STATE_PURPLE,
-    CELL_STATE_GREEN,
-    CELL_STATE_RED,
-    CELL_STATE_BLUE,
-    CELL_STATE_ORANGE,
-    CELL_STATE_EMPTY,
-} CellState;
 
 typedef enum GameState {
     GAME_STATE_PLAY,
@@ -54,27 +53,41 @@ typedef enum GameState {
     GAME_STATE_PAUSE,
 } GameState;
 
+typedef enum CellState {
+    CELL_STATE_CYAN,
+    CELL_STATE_YELLOW,
+    CELL_STATE_PURPLE,
+    CELL_STATE_BLUE,
+    CELL_STATE_ORANGE,
+    CELL_STATE_GREEN,
+    CELL_STATE_RED,
+    CELL_STATE_EMPTY,
+} CellState;
+
+typedef enum TetrominoType {
+    TETROMINO_I,
+    TETROMINO_O,
+    TETROMINO_T,
+    TETROMINO_J,
+    TETROMINO_L,
+    TETROMINO_S,
+    TETROMINO_Z,
+    TETROMINO_TYPE_SIZE
+} TetrominoType;
+
 typedef enum Event {
     EVENT_NONE,
     EVENT_ROTATE,
     EVENT_LEFT,
     EVENT_RIGHT,
     EVENT_DOWN,
+    EVENT_FALL
 } Event;
-
-// typedef enum TetrominoType {
-//     TETROMINO_I,
-//     TETROMINO_O,
-//     TETROMINO_T,
-//     TETROMINO_J,
-//     TETROMINO_L,
-//     TETROMINO_S,
-//     TETROMINO_Z
-// } TetrominoType;
 
 typedef struct {
     Color color;
     int patterns[4];
+    TetrominoType type;
 } Tetromino;
 
 typedef struct {
@@ -85,51 +98,15 @@ typedef struct {
 } MovableTetromino;
 
 typedef struct {
-    double length;
-    double prevTick;
+    double duration;
+    double prevTime;
 } Timer;
 
 typedef struct {
     GameState state;
-    uint64_t score;
     MovableTetromino* tetromino;
+    Timer* fallTimer;
+    int score;
 } Game;
-
-// Tetraminos
-
-static const Tetromino TETROMINO_I = {
-    .color = TETRIS_CYAN,
-    .patterns = {0b0000111100000000, 0b0010001000100010, 0b0000000011110000, 0b0100010001000100}
-};
-
-static const Tetromino TETROMINO_O = {
-    .color = TETRIS_YELLOW,
-    .patterns = {0b0000011001100000, 0b0000011001100000, 0b0000011001100000, 0b0000011001100000}
-};
-
-static const Tetromino TETROMINO_T = {
-    .color = TETRIS_PURPLE,
-    .patterns = {0b0000111001000000, 0b0100110001000000, 0b0100111000000000, 0b0100011001000000}
-};
-
-static const Tetromino TETROMINO_J = {
-    .color = TETRIS_BLUE,
-    .patterns = {0b0100010011000000, 0b1000111000000000, 0b0110010001000000, 0b0000111000100000}
-};
-
-static const Tetromino TETROMINO_L = {
-    .color = TETRIS_ORANGE,
-    .patterns = {0b0100010001100000, 0b0000111010000000, 0b1100010001000000, 0b0010111000000000}
-};
-
-static const Tetromino TETROMINO_S = {
-    .color = TETRIS_GREEN,
-    .patterns = {0b0000011011000000, 0b1000110001000000, 0b0000011011000000, 0b1000110001000000}
-};
-
-static const Tetromino TETROMINO_Z = {
-    .color = TETRIS_RED,
-    .patterns = {0b0000110001100000, 0b0100110010000000, 0b0000110001100000, 0b0100110010000000}
-};
 
 #endif

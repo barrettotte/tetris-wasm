@@ -7,7 +7,7 @@
 #include <time.h>
 
 static Game* game = NULL;
-static CellState grid[GRID_ROWS][GRID_COLS];
+static CellState grid[GRID_ROWS + GRID_HIDDEN_ROWS][GRID_COLS];
 
 // generate tetromino properties given tetromino type
 static void generateTetromino(MovableTetromino* tetromino) {
@@ -90,7 +90,7 @@ static void init() {
 
     // init grid cells
     memset(grid, 0, sizeof(grid));
-    for (int i = 0; i < GRID_ROWS; i++) {
+    for (int i = 0; i < (GRID_ROWS + GRID_HIDDEN_ROWS); i++) {
         for (int j = 0; j < GRID_COLS; j++) {
             grid[i][j] = CELL_STATE_EMPTY;
         }
@@ -127,6 +127,7 @@ static Event checkForEvent() {
         return EVENT_FALL;
     }
 
+    // input related events
     if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
         return EVENT_ROTATE;
     } else if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
@@ -135,6 +136,8 @@ static Event checkForEvent() {
         return EVENT_RIGHT;
     } else if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
         return EVENT_DOWN;
+    } else if (IsKeyPressed(KEY_SPACE)) {
+        return EVENT_INSTANT_FALL;
     }
     return EVENT_NONE;
 }
@@ -144,8 +147,10 @@ static bool isPatternInBounds(Vector2 pattern[4]) {
     for (int i = 0; i < 4; i++) {
         int x = pattern[i].x;
         int y = pattern[i].y;
+        bool xOutOfBounds = (x < 0) || (x >= GRID_COLS);
+        bool yOutOutOfBounds = (y < GRID_HIDDEN_ROWS) || (y >= (GRID_ROWS + GRID_HIDDEN_ROWS));
 
-        if (grid[y][x] != CELL_STATE_EMPTY || (x < 0) || (x >= GRID_COLS) || (y < 0) || (y >= GRID_ROWS)) {
+        if (grid[y][x] != CELL_STATE_EMPTY || xOutOfBounds || yOutOutOfBounds) {
             return false;
         }
     }
@@ -165,7 +170,7 @@ static void getTetrominoPattern(MovableTetromino* tetromino, Vector2* pattern) {
             // check if current bit of row is set
             if (row & 0x1) {
                 pattern[i].x = tetromino->x + x;
-                pattern[i].y = tetromino->y - y;
+                pattern[i].y = tetromino->y + y;
                 i++;
             }
             row >>= 1; // advance to next bit of pattern row
@@ -212,7 +217,7 @@ static void updateGrid(Vector2* currentPattern, MovableTetromino* updatedTetromi
     }
 
     // lock moving tetromino if hit bounds
-    if (!inBounds && event == EVENT_FALL) {
+    if ((!inBounds && event == EVENT_FALL) || (event == EVENT_INSTANT_FALL)) {
         lockTetramino(game->tetromino);
     }
 
@@ -226,16 +231,21 @@ static void handleEvent(Event event) {
 
     MovableTetromino updated = *game->tetromino;
 
-    if (event == EVENT_NONE) {
-        return;
-    } else if (event == EVENT_ROTATE) {
+    if (event == EVENT_FALL) {
+        updated.y++;
+    }
+
+    // check for input related events
+    if (event == EVENT_ROTATE) {
         updated.rotIdx = (updated.rotIdx + 1) % 4;
     } else if (event == EVENT_LEFT) {
         updated.x--;
     } else if (event == EVENT_RIGHT) {
         updated.x++;
-    } else if (event == EVENT_DOWN || event == EVENT_FALL) {
+    } else if (event == EVENT_DOWN) {
         updated.y++;
+    } else if (event == EVENT_INSTANT_FALL) {
+        // TODO:
     }
 
     updateGrid(currentPattern, &updated, event);
@@ -256,14 +266,14 @@ static void drawScore(int score) {
     sprintf(buffer, "Score: %d", score);
 
     int x = (WINDOW_WIDTH - MeasureText(buffer, SCORE_FONT_SIZE)) / 2;
-    int y = GRID_PAD_Y;
-    DrawText(buffer, x, y, SCORE_FONT_SIZE, SCORE_COLOR);
+    int y = HEADER_HEIGHT / 2;
+    DrawText(buffer, x, y, SCORE_FONT_SIZE, TEXT_COLOR);
 }
 
 // draw a grid cell at given col,row
 static void drawGridCell(int col, int row, Color color) {
     int x = (col * GRID_CELL_SIZE) + GRID_PAD_X;
-    int y = ((row + 1) * GRID_CELL_SIZE) - GRID_PAD_Y;
+    int y = (((row + 1) - GRID_HIDDEN_ROWS) * GRID_CELL_SIZE) + HEADER_HEIGHT - GRID_PAD_Y;
 
     Rectangle rect = {
         .x = x + GRID_CELL_GAP,
@@ -278,18 +288,18 @@ static void drawGridCell(int col, int row, Color color) {
 static void drawGrid() {
     // vertical lines
     for (int i = 0; i <= GRID_COLS; i++) {
-        int x = GRID_PAD_X + i * GRID_CELL_SIZE;
+        int x = (i * GRID_CELL_SIZE) + GRID_PAD_X;
         DrawLine(x, GRID_PAD_Y, x, WINDOW_HEIGHT - GRID_PAD_Y, GRID_LINE_COLOR);
     }
 
     // horizontal lines
-    for (int i = 0; i <= GRID_ROWS; i++) {
-        int y = WINDOW_HEIGHT - GRID_PAD_Y - i * GRID_CELL_SIZE;
+    for (int i = GRID_HIDDEN_ROWS; i <= (GRID_ROWS + GRID_HIDDEN_ROWS); i++) {
+        int y = WINDOW_HEIGHT - ((i - GRID_HIDDEN_ROWS) * GRID_CELL_SIZE) - GRID_PAD_Y;
         DrawLine(GRID_PAD_X, y, WINDOW_WIDTH - GRID_PAD_X, y, GRID_LINE_COLOR);
     }
 
     // grid cells
-    for (int i = 0; i < GRID_ROWS; i++) {
+    for (int i = GRID_HIDDEN_ROWS; i < (GRID_ROWS + GRID_HIDDEN_ROWS); i++) {
         for (int j = 0; j < GRID_COLS; j++) {
             drawGridCell(j, i, cellStateToColor(grid[i][j]));
         }

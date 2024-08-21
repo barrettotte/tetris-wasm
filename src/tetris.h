@@ -9,6 +9,9 @@
 #define GRID_COLS 10
 #define GRID_ROWS 20
 
+// for properly drawing tetromino patterns
+#define GRID_HIDDEN_ROWS 2
+
 #define TETRIS_CYAN   (Color) {0x00, 0xff, 0xff, 0xff}
 #define TETRIS_YELLOW (Color) {0xff, 0xff, 0x00, 0xff}
 #define TETRIS_PURPLE (Color) {0x94, 0x00, 0xd3, 0xff}
@@ -23,18 +26,19 @@ static const int GRID_PAD_X = 20;
 static const int GRID_PAD_Y = 20;
 
 static const char* WINDOW_TITLE = "Tetris";
-static const int WINDOW_WIDTH = GRID_CELL_SIZE * GRID_COLS + (2 * GRID_PAD_X);
-static const int WINDOW_HEIGHT = GRID_CELL_SIZE * GRID_ROWS + (2 * GRID_PAD_Y);
+static const int WINDOW_WIDTH = (GRID_CELL_SIZE * GRID_COLS) + (2 * GRID_PAD_X);
+static const int WINDOW_HEIGHT = (GRID_CELL_SIZE * (GRID_ROWS + GRID_HIDDEN_ROWS)) + GRID_PAD_Y;
 static const Color WINDOW_BACKGROUND = GRAY;
 
+static const Color TEXT_COLOR = WHITE;
 static const int SCORE_FONT_SIZE = 30;
-static const Color SCORE_COLOR = WHITE;
+static const int HEADER_HEIGHT = GRID_PAD_Y * 3;
 
 static const Color GRID_LINE_COLOR = GRAY;
 static const Color GRID_CELL_COLOR = BLACK;
 
 static const int SPAWN_X = 3;
-static const int SPAWN_Y = 3;
+static const int SPAWN_Y = 0;
 static const float FALL_SPEED = 0.35f;
 
 static const int PATTERN_I[4] = {0b0000111100000000, 0b0010001000100010, 0b0000000011110000, 0b0100010001000100};
@@ -52,6 +56,16 @@ typedef enum GameState {
     GAME_STATE_OVER,
     GAME_STATE_PAUSE,
 } GameState;
+
+typedef enum Event {
+    EVENT_NONE,
+    EVENT_ROTATE,
+    EVENT_LEFT,
+    EVENT_RIGHT,
+    EVENT_DOWN,
+    EVENT_FALL,
+    EVENT_INSTANT_FALL
+} Event;
 
 typedef enum CellState {
     CELL_STATE_CYAN,
@@ -74,15 +88,6 @@ typedef enum TetrominoType {
     TETROMINO_Z,
     TETROMINO_TYPE_SIZE
 } TetrominoType;
-
-typedef enum Event {
-    EVENT_NONE,
-    EVENT_ROTATE,
-    EVENT_LEFT,
-    EVENT_RIGHT,
-    EVENT_DOWN,
-    EVENT_FALL
-} Event;
 
 typedef struct {
     Color color;

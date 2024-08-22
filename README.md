@@ -47,5 +47,6 @@ For intellisense, add `compileCommands` property:
 ## References
 
 - https://tetris.wiki/Tetris.wiki
+  - https://tetris.wiki/Scoring
 - https://emscripten.org/
 - https://en.wikipedia.org/wiki/Tetromino

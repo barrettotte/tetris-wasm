@@ -142,11 +142,11 @@ static Event checkForEvent() {
     return EVENT_NONE;
 }
 
-// check if tetromino pattern is within grid bounds
-static bool isPatternInBounds(Vector2 pattern[4]) {
+// check if tetromino's cells are within grid bounds and can continue moving
+static bool isTetrominoMovable(Vector2 cells[4]) {
     for (int i = 0; i < 4; i++) {
-        int x = pattern[i].x;
-        int y = pattern[i].y;
+        int x = cells[i].x;
+        int y = cells[i].y;
         bool xOutOfBounds = (x < 0) || (x >= GRID_COLS);
         bool yOutOutOfBounds = (y < GRID_HIDDEN_ROWS) || (y >= (GRID_ROWS + GRID_HIDDEN_ROWS));
 
@@ -157,8 +157,8 @@ static bool isPatternInBounds(Vector2 pattern[4]) {
     return true;
 }
 
-// get appropriate pattern of cells for tetramino based on its current rotation
-static void getTetrominoPattern(MovableTetromino* tetromino, Vector2* pattern) {
+// get appropriate cells for tetramino based on its current rotation
+static void getTetrominoCells(MovableTetromino* tetromino, Vector2* cells) {
     int i = 0;
     int p = tetromino->t->patterns[tetromino->rotIdx];
 
@@ -169,8 +169,8 @@ static void getTetrominoPattern(MovableTetromino* tetromino, Vector2* pattern) {
         for (int x = 0; x < 4; x++) {
             // check if current bit of row is set
             if (row & 0x1) {
-                pattern[i].x = tetromino->x + x;
-                pattern[i].y = tetromino->y + y;
+                cells[i].x = tetromino->x + x;
+                cells[i].y = tetromino->y + y;
                 i++;
             }
             row >>= 1; // advance to next bit of pattern row
@@ -178,19 +178,50 @@ static void getTetrominoPattern(MovableTetromino* tetromino, Vector2* pattern) {
     }
 }
 
+// clear completed rows, returning rows cleared
+static int clearFullRows() {
+    int rows = 0;
+
+    for (int y = GRID_HIDDEN_ROWS; y < (GRID_ROWS + GRID_HIDDEN_ROWS); y++) {
+        bool full = true;
+
+        // check if row is full
+        for (int x = 0; x < GRID_COLS; x++) {
+            if (grid[y][x] == CELL_STATE_EMPTY) {
+                full = false;
+                break;
+            }
+        }
+
+        // move rows above down to current row
+        if (full) {
+            for (int j = y; j > GRID_HIDDEN_ROWS; j--) {
+                memcpy(grid[j], grid[j-1], sizeof(grid[0]));
+            }
+            y--; // recheck current row after clearing it
+            rows++;
+        }
+    }
+    return rows;
+}
+
 // lock final position of current moving tetromino
 static void lockTetramino(MovableTetromino* tetromino) {
-    Vector2 pattern[4];
-    getTetrominoPattern(tetromino, pattern);
+    Vector2 cells[4];
+    getTetrominoCells(tetromino, cells);
 
-    if (!isPatternInBounds(pattern)) {
-        return;
+    // update cells to lock final position
+    for (int i = 0; i < 4; i++) {
+        int x = cells[i].x;
+        int y = cells[i].y;
+        grid[y][x] = (int) tetromino->t->type;
     }
 
-    for (int i = 0; i < 4; i++) {
-        int x = pattern[i].x;
-        int y = pattern[i].y;
-        grid[y][x] = (int) tetromino->t->type;
+    // clear completed rows
+    int rows = clearFullRows();
+    if (rows > 0) {
+        rows = rows > 4 ? 4 : rows;
+        game->score += ROWS_TO_POINTS[rows-1];
     }
 
     // set next tetromino
@@ -198,26 +229,26 @@ static void lockTetramino(MovableTetromino* tetromino) {
 }
 
 // update grid with updated moving tetromino
-static void updateGrid(Vector2* currentPattern, MovableTetromino* updatedTetromino, Event event) {
+static void updateGrid(Vector2* currentCells, MovableTetromino* updatedTetromino, Event event) {
     // clear moving tetramino
     for (int i = 0; i < 4; i++) {
-        int x = currentPattern[i].x;
-        int y = currentPattern[i].y;
+        int x = currentCells[i].x;
+        int y = currentCells[i].y;
         grid[y][x] = CELL_STATE_EMPTY;
     }
 
-    Vector2 updatedPattern[4];
-    getTetrominoPattern(updatedTetromino, updatedPattern);
-    bool inBounds = isPatternInBounds(updatedPattern);
+    Vector2 updatedCells[4];
+    getTetrominoCells(updatedTetromino, updatedCells);
+    bool movable = isTetrominoMovable(updatedCells);
 
-    if (inBounds) {
+    if (movable) {
         game->tetromino->x = updatedTetromino->x;
         game->tetromino->y = updatedTetromino->y;
         game->tetromino->rotIdx = updatedTetromino->rotIdx;
     }
 
     // lock moving tetromino if hit bounds
-    if ((!inBounds && event == EVENT_FALL) || (event == EVENT_INSTANT_FALL)) {
+    if ((!movable && event == EVENT_FALL) || (event == EVENT_INSTANT_FALL)) {
         lockTetramino(game->tetromino);
     }
 
@@ -226,11 +257,12 @@ static void updateGrid(Vector2* currentPattern, MovableTetromino* updatedTetromi
 
 // handle event
 static void handleEvent(Event event) {
-    Vector2 currentPattern[4] = {0};
-    getTetrominoPattern(game->tetromino, currentPattern);
+    Vector2 currentCells[4] = {0};
+    getTetrominoCells(game->tetromino, currentCells);
 
     MovableTetromino updated = *game->tetromino;
 
+    // regular tetromino fall on interval
     if (event == EVENT_FALL) {
         updated.y++;
     }
@@ -248,7 +280,8 @@ static void handleEvent(Event event) {
         // TODO:
     }
 
-    updateGrid(currentPattern, &updated, event);
+    // update grid with changes to current tetromino
+    updateGrid(currentCells, &updated, event);
 }
 
 // process game logic for single frame
@@ -261,9 +294,9 @@ static void update() {
 }
 
 // draw current score
-static void drawScore(int score) {
-    char buffer[32];
-    sprintf(buffer, "Score: %d", score);
+static void drawScore(unsigned long score) {
+    char buffer[64];
+    sprintf(buffer, "Score: %lu", score);
 
     int x = (WINDOW_WIDTH - MeasureText(buffer, SCORE_FONT_SIZE)) / 2;
     int y = HEADER_HEIGHT / 2;
@@ -308,17 +341,17 @@ static void drawGrid() {
 
 // draw tetromino to grid
 static void drawTetromino(MovableTetromino* tetromino) {
-    Vector2 pattern[4];
-    getTetrominoPattern(tetromino, pattern);
+    Vector2 cells[4];
+    getTetrominoCells(tetromino, cells);
 
-    // make sure tetromino can be drawn in bounds
-    if (!isPatternInBounds(pattern)) {
+    // leave if we dont need to redraw tetromino
+    if (!isTetrominoMovable(cells)) {
         return;
     }
 
     // draw tetromino cell by cell
     for (int i = 0; i < 4; i++) {
-        drawGridCell(pattern[i].x, pattern[i].y, tetromino->t->color);
+        drawGridCell(cells[i].x, cells[i].y, tetromino->t->color);
     }
 }
 

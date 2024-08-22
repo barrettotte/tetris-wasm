@@ -41,6 +41,10 @@ static const int SPAWN_X = 3;
 static const int SPAWN_Y = 0;
 static const float FALL_SPEED = 0.35f;
 
+// note: tetrominos are at most 4 rows, so only need 4 rows
+// using https://tetris.wiki/Scoring#Recent_guideline_compatible_games
+static const int ROWS_TO_POINTS[4] = {100, 300, 500, 800};
+
 static const int PATTERN_I[4] = {0b0000111100000000, 0b0010001000100010, 0b0000000011110000, 0b0100010001000100};
 static const int PATTERN_O[4] = {0b0000011001100000, 0b0000011001100000, 0b0000011001100000, 0b0000011001100000};
 static const int PATTERN_T[4] = {0b0000111001000000, 0b0100110001000000, 0b0100111000000000, 0b0100011001000000};
@@ -111,7 +115,7 @@ typedef struct {
     GameState state;
     MovableTetromino* tetromino;
     Timer* fallTimer;
-    int score;
+    unsigned long score;
 } Game;
 
 #endif

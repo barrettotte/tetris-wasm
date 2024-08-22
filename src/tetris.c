@@ -69,47 +69,6 @@ static Color cellStateToColor(CellState state) {
     }
 }
 
-// set initial game state
-static void init() {
-    srand(time(NULL));
-
-    MovableTetromino* current = malloc(sizeof(MovableTetromino));
-    current->t = malloc(sizeof(Tetromino));
-    generateTetromino(current);
-
-    // init game data
-    game = malloc(sizeof(Game));
-    game->state = GAME_STATE_PLAY;
-    game->score = 0;
-    game->tetromino = current;
-
-    // init timer for falling tetrominos
-    game->fallTimer = malloc(sizeof(Timer));
-    game->fallTimer->duration = FALL_SPEED;
-    game->fallTimer->prevTime = GetTime();
-
-    // init grid cells
-    memset(grid, 0, sizeof(grid));
-    for (int i = 0; i < (GRID_ROWS + GRID_HIDDEN_ROWS); i++) {
-        for (int j = 0; j < GRID_COLS; j++) {
-            grid[i][j] = CELL_STATE_EMPTY;
-        }
-    }
-
-    // init UI
-    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE);
-    SetTargetFPS(60);
-}
-
-// tear down game
-static void cleanup() {
-    CloseWindow();
-    free(game->tetromino->t);
-    free(game->tetromino);
-    free(game->fallTimer);
-    free(game);
-}
-
 // check if timer has elapsed for timer duration
 static bool timerHasFired(Timer* timer) {
     double now = GetTime();
@@ -138,8 +97,29 @@ static Event checkForEvent() {
         return EVENT_DOWN;
     } else if (IsKeyPressed(KEY_SPACE)) {
         return EVENT_INSTANT_FALL;
+    } else if (IsKeyPressed(KEY_R)) {
+        return EVENT_RESTART;
     }
     return EVENT_NONE;
+}
+
+// reset game to initial state
+static void restart() {
+    game->score = 0;
+    game->state = GAME_STATE_PLAY;
+    game->fallTimer->duration = FALL_SPEED;
+    game->fallTimer->prevTime = GetTime();
+
+    // init grid cells
+    memset(grid, 0, sizeof(grid));
+    for (int i = 0; i < (GRID_ROWS + GRID_HIDDEN_ROWS); i++) {
+        for (int j = 0; j < GRID_COLS; j++) {
+            grid[i][j] = CELL_STATE_EMPTY;
+        }
+    }
+
+    // set initial tetromino
+    generateTetromino(game->tetromino);
 }
 
 // check if tetromino's cells are within grid bounds and can continue moving
@@ -216,49 +196,62 @@ static void lockTetramino(MovableTetromino* tetromino) {
         int y = cells[i].y;
         grid[y][x] = (int) tetromino->t->type;
     }
-
-    // clear completed rows
-    int rows = clearFullRows();
-    if (rows > 0) {
-        rows = rows > 4 ? 4 : rows;
-        game->score += ROWS_TO_POINTS[rows-1];
-    }
-
-    // set next tetromino
-    generateTetromino(tetromino);
 }
 
 // update grid with updated moving tetromino
-static void updateGrid(Vector2* currentCells, MovableTetromino* updatedTetromino, Event event) {
-    // clear moving tetramino
+static void updateGrid(Vector2* cells, MovableTetromino* tetromino, Event event) {
     for (int i = 0; i < 4; i++) {
-        int x = currentCells[i].x;
-        int y = currentCells[i].y;
-        grid[y][x] = CELL_STATE_EMPTY;
+        int x = cells[i].x;
+        int y = cells[i].y;
+
+        if (y < GRID_HIDDEN_ROWS) {
+            y = GRID_HIDDEN_ROWS;
+        }
+        grid[y][x] = CELL_STATE_EMPTY; // clear moving tetromino
     }
 
     Vector2 updatedCells[4];
-    getTetrominoCells(updatedTetromino, updatedCells);
+    getTetrominoCells(tetromino, updatedCells);
     bool movable = isTetrominoMovable(updatedCells);
 
     if (movable) {
-        game->tetromino->x = updatedTetromino->x;
-        game->tetromino->y = updatedTetromino->y;
-        game->tetromino->rotIdx = updatedTetromino->rotIdx;
+        game->tetromino->x = tetromino->x;
+        game->tetromino->y = tetromino->y;
+        game->tetromino->rotIdx = tetromino->rotIdx;
     }
 
     // lock moving tetromino if hit bounds
-    if ((!movable && event == EVENT_FALL) || (event == EVENT_INSTANT_FALL)) {
+    if ((!movable && event == EVENT_FALL) || (tetromino->y >= GRID_HIDDEN_ROWS && event == EVENT_INSTANT_FALL)) {
         lockTetramino(game->tetromino);
-    }
 
-    // TODO: check clear blocks?
+        // clear completed rows
+        int rows = clearFullRows();
+        if (rows > 0) {
+            rows = rows > 4 ? 4 : rows;
+            game->score += ROWS_TO_POINTS[rows-1];
+        }
+
+        // set next tetromino
+        generateTetromino(game->tetromino);
+    }
 }
 
 // handle event
 static void handleEvent(Event event) {
-    Vector2 currentCells[4] = {0};
-    getTetrominoCells(game->tetromino, currentCells);
+    if (game->state == GAME_STATE_OVER) {
+        if (event == EVENT_RESTART) {
+            restart();
+        }
+        return; // stay at game over screen
+    }
+
+    // restart to initial state
+    if (event == EVENT_RESTART) {
+        restart();
+    }
+
+    Vector2 cells[4] = {0};
+    getTetrominoCells(game->tetromino, cells);
 
     MovableTetromino updated = *game->tetromino;
 
@@ -277,29 +270,44 @@ static void handleEvent(Event event) {
     } else if (event == EVENT_DOWN) {
         updated.y++;
     } else if (event == EVENT_INSTANT_FALL) {
-        // TODO:
+        while (isTetrominoMovable(cells)) {
+            updated.y++;
+            getTetrominoCells(&updated, cells);
+        }
+        updated.y--;
+        getTetrominoCells(&updated, cells);
     }
 
     // update grid with changes to current tetromino
-    updateGrid(currentCells, &updated, event);
+    updateGrid(cells, &updated, event);
 }
 
-// process game logic for single frame
-static void update() {
-    Event event = checkForEvent();
-
-    if (event != EVENT_NONE) {
-        handleEvent(event);
+// check if blocks have hit the top of the grid, triggering game over
+static void checkForGameOver() {
+    for (int x = 0; x < GRID_COLS; x++) {
+        if (grid[GRID_HIDDEN_ROWS][x] != CELL_STATE_EMPTY) {
+            game->state = GAME_STATE_OVER;
+        }
     }
 }
 
-// draw current score
+// draw title above grid
+static void drawTitle() {
+    char buffer[64];
+    sprintf(buffer, "%s", WINDOW_TITLE);
+
+    int x = (WINDOW_WIDTH - MeasureText(buffer, TITLE_FONT_SIZE)) / 2;
+    int y = 2;
+    DrawText(buffer, x, y, TITLE_FONT_SIZE, TEXT_COLOR);
+}
+
+// draw current score above grid
 static void drawScore(unsigned long score) {
     char buffer[64];
     sprintf(buffer, "Score: %lu", score);
 
     int x = (WINDOW_WIDTH - MeasureText(buffer, SCORE_FONT_SIZE)) / 2;
-    int y = HEADER_HEIGHT / 2;
+    int y = (HEADER_HEIGHT / 2) + 10;
     DrawText(buffer, x, y, SCORE_FONT_SIZE, TEXT_COLOR);
 }
 
@@ -355,6 +363,29 @@ static void drawTetromino(MovableTetromino* tetromino) {
     }
 }
 
+// draw game over message
+static void drawGameOver() {
+    int x = (WINDOW_WIDTH - MeasureText("Game Over", 48)) / 2;
+    int y = WINDOW_HEIGHT / 2;
+
+    DrawText("Game Over", x, y, 48, TEXT_COLOR);
+    DrawText("Press R to Restart", x, y + 48, 24, TEXT_COLOR);
+}
+
+// set initial game state
+static void init() {
+    srand(time(NULL));
+
+    // allocate memory
+    game = malloc(sizeof(Game));
+    game->tetromino = malloc(sizeof(MovableTetromino));
+    game->tetromino->t = malloc(sizeof(Tetromino));
+    game->fallTimer = malloc(sizeof(Timer));
+
+    // reset state
+    restart();
+}
+
 // draw graphics for single frame
 static void draw() {
     BeginDrawing();
@@ -364,8 +395,29 @@ static void draw() {
         drawGrid();
         drawTetromino(game->tetromino);
         drawScore(game->score);
+        drawTitle();
+    } else if (game->state == GAME_STATE_OVER) {
+        drawGameOver();
     }
     EndDrawing();
+}
+
+// process game logic for single frame
+static void update() {
+    Event event = checkForEvent();
+
+    if (event != EVENT_NONE) {
+        handleEvent(event);
+    }
+    checkForGameOver();
+}
+
+// tear down game
+static void cleanup() {
+    free(game->tetromino->t);
+    free(game->tetromino);
+    free(game->fallTimer);
+    free(game);
 }
 
 // program entry
@@ -373,10 +425,14 @@ int main(int argc, const char* argv[]) {
     printf("%s started.\n", WINDOW_TITLE);
     init();
 
+    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE);
+    SetTargetFPS(60);
+
     while (!WindowShouldClose()) {
         update();
         draw();
     }
+    CloseWindow();
 
     cleanup();
     printf("%s ended.\n", WINDOW_TITLE);

@@ -31,7 +31,8 @@ static const int WINDOW_HEIGHT = (GRID_CELL_SIZE * (GRID_ROWS + GRID_HIDDEN_ROWS
 static const Color WINDOW_BACKGROUND = GRAY;
 
 static const Color TEXT_COLOR = WHITE;
-static const int SCORE_FONT_SIZE = 30;
+static const int SCORE_FONT_SIZE = 25;
+static const int TITLE_FONT_SIZE = 30;
 static const int HEADER_HEIGHT = GRID_PAD_Y * 3;
 
 static const Color GRID_LINE_COLOR = GRAY;
@@ -39,7 +40,7 @@ static const Color GRID_CELL_COLOR = BLACK;
 
 static const int SPAWN_X = 3;
 static const int SPAWN_Y = 0;
-static const float FALL_SPEED = 0.35f;
+static const float FALL_SPEED = 0.5f;
 
 // note: tetrominos are at most 4 rows, so only need 4 rows
 // using https://tetris.wiki/Scoring#Recent_guideline_compatible_games
@@ -68,7 +69,8 @@ typedef enum Event {
     EVENT_RIGHT,
     EVENT_DOWN,
     EVENT_FALL,
-    EVENT_INSTANT_FALL
+    EVENT_INSTANT_FALL,
+    EVENT_RESTART
 } Event;
 
 typedef enum CellState {

@@ -6,9 +6,15 @@ This was made to learn the basics of Raylib, WASM, CMake, and Conan.
 
 ## Unimplemented Features
 
+- Tetromino ghost/shadow
+- Next tetromino preview
 - Tetromino hold
-- Tetromino preview
 - Levels
+- Pause screen
+- Audio
+- Limited scoring
+- No high score recording
+- Probably more I didn't notice
 
 ## Development
 

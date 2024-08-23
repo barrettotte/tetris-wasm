@@ -2,7 +2,7 @@
 
 Tetris clone in C and compiled to WASM.
 
-This was made to learn the basics of Raylib, WASM, CMake, and Conan.
+This was made to learn the basics of Raylib, WASM, CMake, Conan, and Ninja.
 
 ## Unimplemented Features
 
@@ -18,16 +18,18 @@ This was made to learn the basics of Raylib, WASM, CMake, and Conan.
 
 ## Development
 
+Dependencies: CMake, Conan, Ninja, Emscripten
+
 ```sh
-# init build system
-conan install . --output-folder=build/ --build=missing
-cmake -S . -B build
+# build system
+conan install . -pr=./profiles/default --build=missing
+cmake -G Ninja --preset conan-release
 
-# build
-make -C build tetris
+# build binary
+ninja -C build/Release
 
-# run
-./bin/tetris
+# build and run binary
+ninja -C build/Release run
 ```
 
 ### VS Code
@@ -56,3 +58,5 @@ For intellisense, add `compileCommands` property:
   - https://tetris.wiki/Scoring
 - https://emscripten.org/
 - https://en.wikipedia.org/wiki/Tetromino
+- https://emscripten.org/docs/getting_started/downloads.html
+- https://github.com/raysan5/raylib/wiki/Working-for-Web-(HTML5)

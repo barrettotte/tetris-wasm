@@ -1,0 +1,10 @@
+[settings]
+arch=x86_64
+os=Linux
+build_type=Release
+compiler=clang
+compiler.cstd=11
+compiler.version=18
+
+[conf]
+tools.cmake.cmaketoolchain:generator=Ninja

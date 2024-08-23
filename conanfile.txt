@@ -1,6 +1,0 @@
-[requires]
-raylib/5.0
-
-[generators]
-CMakeDeps
-CMakeToolchain

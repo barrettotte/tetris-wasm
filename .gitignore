@@ -1,7 +1,8 @@
 bin
 build
-*.o
+build-wasm
 
 CMakeUserPresets.json
+
 tmp
 .vscode

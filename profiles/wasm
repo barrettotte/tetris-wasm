@@ -1,0 +1,13 @@
+[settings]
+arch=wasm
+os=Emscripten
+build_type=Release
+compiler=clang
+compiler.cstd=11
+compiler.version=18
+
+[conf]
+tools.cmake.cmaketoolchain:generator=Ninja
+
+[tool_requires]
+emsdk/3.1.50

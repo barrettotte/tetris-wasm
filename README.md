@@ -21,15 +21,20 @@ This was made to learn the basics of Raylib, WASM, CMake, Conan, and Ninja.
 Dependencies: CMake, Conan, Ninja, Emscripten
 
 ```sh
-# build system
-conan install . -pr=./profiles/default --build=missing
-cmake -G Ninja --preset conan-release
-
-# build binary
-ninja -C build/Release
+# native build
+conan install . --profile=profiles/default --output-folder=build --build=missing
+cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+ninja -C build
 
 # build and run binary
-ninja -C build/Release run
+ninja -C build run
+```
+
+```sh
+# wasm build
+conan install . --profile=profiles/wasm --output-folder=build-wasm --build=missing
+cmake -G Ninja -B build-wasm -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN=ON
+ninja -C build-wasm
 ```
 
 ### VS Code

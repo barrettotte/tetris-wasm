@@ -38,7 +38,7 @@ if (EMSCRIPTEN)
     # serve wasm build locally
     add_custom_target(serve
         COMMENT "Serving ${PROJECT_NAME} web build at http://localhost:${WASM_PORT}"
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/web"    
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/docs"    
         COMMAND cp "${CMAKE_SOURCE_DIR}/bin/${PROJECT_NAME}.js" .
         COMMAND cp "${CMAKE_SOURCE_DIR}/bin/${PROJECT_NAME}.wasm" .
         COMMAND python3 -m http.server "${WASM_PORT}"

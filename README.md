@@ -23,7 +23,7 @@ Dependencies: CMake, Conan, Ninja, Emscripten
 ```sh
 # native build
 conan install . --profile=profiles/default --output-folder=build --build=missing
-cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+cmake -G Ninja -B build
 ninja -C build
 
 # build and run binary
@@ -33,7 +33,7 @@ ninja -C build run
 ```sh
 # wasm build
 conan install . --profile=profiles/wasm --output-folder=build-wasm --build=missing
-cmake -G Ninja -B build-wasm -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN=ON
+cmake -G Ninja -B build-wasm -DEMSCRIPTEN=ON
 ninja -C build-wasm
 ```
 

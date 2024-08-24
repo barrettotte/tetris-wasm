@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.5)
 
-# webassembly configuration
 if (EMSCRIPTEN)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s USE_GLFW=3 -s ASSERTIONS=1 -s WASM=1 -s ASYNCIFY")
     # -s GL_ENABLE_GET_PROC_ADDRESS=1
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    set(BUILD_DIR "build-wasm")
+else()
+    set(BUILD_DIR "build")
 endif ()
 
 # set toolchain
@@ -36,15 +38,15 @@ if (EMSCRIPTEN)
     # serve wasm build locally
     add_custom_target(serve
         COMMAND echo 'TODO: serve wasm build locally...'
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         COMMENT "Serving ${PROJECT_NAME} web build at http://localhost:${WASM_PORT}"
     )
 else()
     # run native build
     add_custom_target(run
         DEPENDS ${PROJECT_NAME}
-        COMMAND bin/${PROJECT_NAME}
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMAND "${CMAKE_SOURCE_DIR}bin/${PROJECT_NAME}"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         COMMENT "Running ${PROJECT_NAME}"
     )
 endif()

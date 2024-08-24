@@ -4,17 +4,20 @@ Tetris clone in C and compiled to WASM.
 
 This was made to learn the basics of Raylib, WASM, CMake, Conan, and Ninja.
 
-## Unimplemented Features
+TODO: screenshot
 
-- Tetromino ghost/shadow
-- Next tetromino preview
-- Tetromino hold
-- Levels
-- Pause screen
-- Audio
-- Limited scoring
-- No high score recording
-- Probably more I didn't notice
+Served at TODO: github page url
+
+## Controls
+
+<ul>
+  <li>Left: <kbd>&#8592;</kbd>, <kbd>A</kbd></li>
+  <li>Right: <kbd>&#8594;</kbd>, <kbd>D</kbd></li>
+  <li>Rotate: <kbd>&#8593;</kbd>, <kbd>W</kbd></li>
+  <li>Down: <kbd>&#8595;</kbd>, <kbd>S</kbd></li>
+  <li>Fast drop: <kbd>SPACE</kbd></li>
+  <li>Restart: <kbd>R</kbd></li>
+</ul>
 
 ## Development
 
@@ -35,6 +38,9 @@ ninja -C build run
 conan install . --profile=profiles/wasm --output-folder=build-wasm --build=missing
 cmake -G Ninja -B build-wasm -DEMSCRIPTEN=ON
 ninja -C build-wasm
+
+# build and serve wasm binary at http://localhost:1337
+ninja -C build-wasm serve
 ```
 
 ### VS Code
@@ -56,6 +62,18 @@ For intellisense, add `compileCommands` property:
     "version": 4
 }
 ```
+
+## Unimplemented Features
+
+- Tetromino ghost/shadow
+- Next tetromino preview
+- Tetromino hold
+- Levels
+- Pause screen
+- Audio
+- Limited scoring
+- No high score recording
+- Probably more I didn't notice
 
 ## References
 

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="title" content="tetris-wasm">
+    <meta name="description" content="WASM Tetris">
+    <meta name="viewport" content="width=device-width">
+    <title>tetris-wasm</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="container">
+      <h1>tetris-wasm</h1>
+      <a href="https://github.com/barrettotte/tetris-wasm">github.com/barrettotte/tetris-wasm</a>
+      <ul>
+        <li>Left: <kbd>&#8592;</kbd>, <kbd>A</kbd></li>
+        <li>Down: <kbd>&#8595;</kbd>, <kbd>S</kbd></li>
+        <li>Rotate: <kbd>&#8593;</kbd>, <kbd>W</kbd></li>
+        <li>Right: <kbd>&#8594;</kbd>, <kbd>D</kbd></li>
+        <li>Fast drop: <kbd>SPACE</kbd></li>
+        <li>Restart: <kbd>R</kbd></li>
+      </ul>
+      <canvas class=emscripten id=canvas oncontextmenu=event.preventDefault() tabindex=-1></canvas>
+      <p id="output"></p>
+    </div>
+    <script>
+      var Module = {
+        canvas: (() => document.getElementById('canvas'))(),
+        print: (() => {
+          var element = document.getElementById('output');
+          if (element) {
+            element.value = ''; // clear browser cache
+          }
+          return (text) => {
+            if (arguments.length > 1) {
+              text = Array.prototype.slice.call(arguments).join(' ');
+            }
+            console.log(text);
+
+            if (element) {
+              element.value += text + "\n";
+              element.scrollTop = element.scrollHeight;
+            }
+          };
+        })()
+      };
+    </script>
+    <script src="tetris.js"></script>
+  </body>
+</html>

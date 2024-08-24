@@ -37,16 +37,18 @@ if (EMSCRIPTEN)
 
     # serve wasm build locally
     add_custom_target(serve
-        COMMAND echo 'TODO: serve wasm build locally...'
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         COMMENT "Serving ${PROJECT_NAME} web build at http://localhost:${WASM_PORT}"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/web"    
+        COMMAND cp "${CMAKE_SOURCE_DIR}/bin/${PROJECT_NAME}.js" .
+        COMMAND cp "${CMAKE_SOURCE_DIR}/bin/${PROJECT_NAME}.wasm" .
+        COMMAND python3 -m http.server "${WASM_PORT}"
     )
 else()
     # run native build
     add_custom_target(run
-        DEPENDS ${PROJECT_NAME}
-        COMMAND "${CMAKE_SOURCE_DIR}bin/${PROJECT_NAME}"
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         COMMENT "Running ${PROJECT_NAME}"
+        DEPENDS ${PROJECT_NAME}
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        COMMAND "${CMAKE_SOURCE_DIR}bin/${PROJECT_NAME}"
     )
 endif()

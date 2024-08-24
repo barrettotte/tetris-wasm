@@ -6,3 +6,6 @@ CMakeUserPresets.json
 
 tmp
 .vscode
+
+web/tetris.js
+web/tetris.wasm

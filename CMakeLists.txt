@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.5)
 
 if (EMSCRIPTEN)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s USE_GLFW=3 -s ASSERTIONS=1 -s WASM=1 -s ASYNCIFY")
-    # -s GL_ENABLE_GET_PROC_ADDRESS=1
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
     set(BUILD_DIR "build-wasm")
 else()
@@ -49,6 +48,6 @@ else()
         COMMENT "Running ${PROJECT_NAME}"
         DEPENDS ${PROJECT_NAME}
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        COMMAND "${CMAKE_SOURCE_DIR}bin/${PROJECT_NAME}"
+        COMMAND "${CMAKE_SOURCE_DIR}/bin/${PROJECT_NAME}"
     )
 endif()

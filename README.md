@@ -4,7 +4,7 @@ Tetris clone in C and compiled to WASM.
 
 This was made to learn the basics of Raylib, WASM, CMake, Conan, and Ninja.
 
-TODO: screenshot
+<img src="docs/screenshot.png" alt="docs/screenshot.png" height="400px"/>
 
 WASM build served at https://barrettotte.github.io/tetris-wasm/
 
